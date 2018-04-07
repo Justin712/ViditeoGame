@@ -120,7 +120,7 @@ def main():
 				if cmd == 0:
 					print "SUCCESS: GET"
 					
-					# Get max size of client buffer
+					# Get max size of client receive buffer
 					clientBuff = recvAll(clientSock, 10)
 					
 					# ***************
@@ -132,7 +132,7 @@ def main():
 				elif cmd == 1:
 					print "SUCCESS: PUT"
 					
-					# Get max size of client buffer
+					# Get max size of client receive buffer
 					clientBuff = recvAll(clientSock, 10)
 					
 					# ***************
@@ -144,7 +144,7 @@ def main():
 				elif cmd == 2:
 					print "SUCCESS: LS"
 					
-					# Get max size of client buffer
+					# Get max size of client receive buffer
 					clientBuff = recvAll(clientSock, 10)
 					
 					# ***************
