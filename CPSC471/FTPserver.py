@@ -25,7 +25,7 @@ def print_error(errnum):
 # @return - the bytes received
 # *************************************************
 def recvAll(sock, numBytes):
-	
+	numBytes = int(numBytes)
 	# The buffer
 	recvBuff = ""
 	
@@ -33,7 +33,7 @@ def recvAll(sock, numBytes):
 	tmpBuff = ""
 	
 	# Keep receiving till all is received
-	while len(recvBuff) < numBytes:
+	while len(recvBuff) < (numBytes):
 		
 		# Attempt to receive bytes
 		tmpBuff =  sock.recv(numBytes)
@@ -45,7 +45,7 @@ def recvAll(sock, numBytes):
 		# Add the received bytes to the buffer
 		recvBuff += tmpBuff
 		
-	return recvBuff
+	return str(recvBuff)
 
 def main():
 	
@@ -126,15 +126,45 @@ def main():
 				
 				# GET command
 				if cmd == 0:
-					print "SUCCESS: GET"
+                                        # Receive name of file to send
+                                        fileNLength = recvAll(clientSock, 2)
+                                        fileN = str(recvAll(clientSock, fileNLength))
+
+                                        reqFile = open(fileN, 'r')
+
+                                        # Construct data socket, bind it to an ephemeral port,
+                                        # then open for connections
+                                        servData = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                                        servData.bind(('',0))
+                                        newPort = str(servData.getsockname()[1])
+                                        newPortLength = len(str(newPort))
+                                        newPortLength = str(newPortLength)
+
+                                        #Send client the new data transfer port
+                                        clientSock.send(newPortLength)
+                                        clientSock.send(newPort)
+                                        servData.listen(1)
+                                        
+                                        print "Ephemeral port number for GET: ", servData.getsockname()[1]
+                                        clientData, addr2 = servData.accept()
+
+                                        #print "SUCCESS: GET"
 					
 					# Get max size of client receive buffer
-					clientBuff = recvAll(clientSock, 10)
-					
-					# ***************
-					# CODE GOES HERE 
-					# ***************
-					
+					clientBuff = recvAll(clientData, 10)
+
+                                        # Commence Transfer
+                                        numBytes = len(str(reqFile))
+                                        numBytes = str(numBytes)
+                                        while len(numBytes) < 10:
+                                                numBytes = "0" + numBytes
+                                        clientData.send(numBytes)
+                                        sentBytes = 0
+                                        while sentBytes != int(numBytes):
+                                                packet = reqFile.read(int(clientBuff))
+                                                clientData.send(packet)
+                                                sentBytes += len(packet)
+					print "Send complete."
 					
 				# PUT command
 				elif cmd == 1:
@@ -142,11 +172,12 @@ def main():
 					
 					# Get max size of client receive buffer
 					clientBuff = recvAll(clientSock, 10)
-					
+                                        
 					# ***************
 					# CODE GOES HERE 
 					# ***************
-					
+                                        while len(putFile) != clientBuff:
+                                                putFile += recvAll(clientSock, int(clientBuff))
 					
 				# LS command
 				elif cmd == 2:
