@@ -52,6 +52,7 @@ def main():
 		if 'clientSock' in locals():
 			clientSock.close()
 		
+		# Exit
 		print " Interrupted"
 		sys.exit(0)
 	
@@ -65,11 +66,12 @@ def main():
 		print "1023 > PORT NUMBER < 65536"
 
 	# Checks for valid port range and if the argument is a number
-	elif int(sys.argv[1]) < 1023 or int(sys.argv[1]) > 65535 or not sys.argv[1].isdigit():
+	elif int(sys.argv[1]) < 1024 or int(sys.argv[1]) > 65535 or not sys.argv[1].isdigit():
 		print "USAGE python " + sys.argv[0] + " <PORT NUMBER>"
 		print "1023 > PORT NUMBER < 65536"
-
+	
 	else:
+		
 		# The port on which to listen
 		listenPort = int(sys.argv[1])
 		
@@ -101,10 +103,10 @@ def main():
 				# The temporary buffer to store the received data.
 				recvBuff = ""
 				
-				# Get the command data
+				# Get the command byte
 				command = recvAll(clientSock, 1)
 				
-				# Check command data
+				# Check command byte
 				if not command:
 					break
 				
@@ -117,6 +119,8 @@ def main():
 				# GET command
 				if cmd == 0:
 					print "SUCCESS: GET"
+					
+					# Get max size of client buffer
 					clientBuff = recvAll(clientSock, 10)
 					
 					# ***************
@@ -127,6 +131,8 @@ def main():
 				# PUT command
 				elif cmd == 1:
 					print "SUCCESS: PUT"
+					
+					# Get max size of client buffer
 					clientBuff = recvAll(clientSock, 10)
 					
 					# ***************
@@ -137,6 +143,8 @@ def main():
 				# LS command
 				elif cmd == 2:
 					print "SUCCESS: LS"
+					
+					# Get max size of client buffer
 					clientBuff = recvAll(clientSock, 10)
 					
 					# ***************
@@ -158,6 +166,7 @@ def main():
 			# Close our side
 			clientSock.close()
 	
+	# Exit
 	sys.exit(0)
 
 main()

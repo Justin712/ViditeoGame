@@ -19,6 +19,7 @@ def main():
 		if 'connSocket' in locals():
 			connSock.close()
 		
+		# Exit
 		print " Interrupted"
 		sys.exit(0)
 	
@@ -32,12 +33,12 @@ def main():
 		print "1023 > PORT NUMBER < 65536"
 		
 	# Checks for valid port range and if the argument is a number
-	elif int(sys.argv[2]) < 1023 or int(sys.argv[2]) > 65535 or not sys.argv[2].isdigit():
+	elif int(sys.argv[2]) < 1024 or int(sys.argv[2]) > 65535 or not sys.argv[2].isdigit():
 		print "USAGE python " + sys.argv[0] + " <SERVER NAME>" + " <PORT NUMBER>" 
 		print "1023 > PORT NUMBER < 65536"
-		
+	
 	else:
-
+		
 		# Server address
 		serverAddr = sys.argv[1]
 
@@ -52,8 +53,6 @@ def main():
 
 		while True:
 			
-			size = ""
-			
 			# Get user input and parse into array
 			cmd = raw_input("ftp> ").split()
 			
@@ -61,6 +60,7 @@ def main():
 			sndBuff = ""
 			
 			# GET command
+			# Check for "get" and appropriate arguments
 			if cmd[0] == "get" and len(cmd) == 2:
 				
 				# Get size of receiver buffer and convert to string
@@ -70,7 +70,7 @@ def main():
 				while len(size) < 10:
 					size = "0" + size
 				
-				# Set command byte and add receiver buffer size
+				# Set command byte and add client receive buffer size
 				sndBuff = chr(0) + size
 				
 				# Send data
@@ -82,6 +82,7 @@ def main():
 					
 					
 			# PUT command
+			# Check for "put" and appropriate arguments
 			elif cmd[0] == "put" and len(cmd) == 2:
 				
 				# Get size of receiver buffer and convert to string
@@ -91,7 +92,7 @@ def main():
 				while len(size) < 10:
 					size = "0" + size
 				
-				# Set command byte and add receiver buffer size
+				# Set command byte and add client receive buffer size
 				sndBuff = chr(1) + size
 				
 				# Send data
@@ -103,6 +104,7 @@ def main():
 					
 					
 			# LS command
+			# Check for "ls" and appropriate arguments
 			elif cmd[0] == "ls" and len(cmd) == 1:
 				
 				# Get size of receiver buffer and convert to string
@@ -112,7 +114,7 @@ def main():
 				while len(size) < 10:
 					size = "0" + size
 				
-				# Set command byte and add receiver buffer size
+				# Set command byte and add client receiver buffer size
 				sndBuff = chr(2) + size
 				
 				# Send data
@@ -124,6 +126,7 @@ def main():
 					
 					
 			# EXIT command
+			# Check for "exit" and appropriate arguments
 			elif cmd[0] == "exit" and len(cmd) == 1:
 					
 				# Set command byte
@@ -131,7 +134,7 @@ def main():
 				
 				# Send data
 				connSock.send(sndBuff)
-					
+				
 				print("Exiting.")
 				break
 			
@@ -143,9 +146,10 @@ def main():
 				print "  ls"
 				print "  exit\n"
 		
-		# Close the socket and the file
+		# Close the socket
 		connSock.close()
 	
+	# Exit
 	sys.exit(0)
 
 main()
