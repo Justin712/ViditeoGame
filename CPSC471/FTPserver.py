@@ -5,9 +5,17 @@
 # Authors: Jason Chandler, Justin Chandler, David Ngo, Christian Medina
 # **********************************************************************
 
+import errno
+import os
 import signal
 import socket
 import sys
+
+# Prints error information
+def print_error(errnum):
+	
+	# Returns error code and error message
+	return "%s: %s" % (errno.errorcode[errnum], os.strerror(errnum))
 
 # ************************************************
 # Receives the specified number of bytes
@@ -169,5 +177,23 @@ def main():
 	# Exit
 	sys.exit(0)
 
-main()
+# Run main
+try:
+	main()
+	
+# Catch socket errors and print
+except socket.error as e:
+	print "SOCKET ERROR:\t *** %s ***" % print_error(e.errno)
+	
+# Catch address errors and print
+except socket.herror as e:
+	print "ADDRESS ERROR:\t *** %s ***" % print_error(e.errno)
+	
+# Catch additional address errors and print
+except socket.gaierror as e:
+	print "ADDRESS ERROR:\t *** %s ***" % print_error(e.errno)
+	
+# Catch timeouts and print
+except socket.timeout as e:
+	print "TIMEOUT ERROR:\t *** %s ***" % print_error(e.errno)
 
