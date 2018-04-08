@@ -54,9 +54,12 @@ def main():
 	# Signal handler
 	def signal_handler(signal, frame):
 		
-		# Check for connection socket and close it
+		# Check for connection and data sockets and close them
 		if 'connSocket' in locals():
 			connSock.close()
+                if 'clientData' in locals():
+			clientData.close()
+
 		
 		# Exit
 		print " Interrupted"
@@ -91,6 +94,11 @@ def main():
 		connSock.connect((serverAddr, serverPort))
 
 		while True:
+                        # Size of receive buffer as 10-digit string
+                        clientSize = ""
+			clientSize = str(connSock.getsockopt(socket.SOL_SOCKET,socket.SO_RCVBUF))
+                        while len(clientSize) < 10:
+                                clientSize = "0" + clientSize
 			
 			# Get user input and parse into array
 			cmd = raw_input("ftp> ").split()
@@ -101,7 +109,13 @@ def main():
 			# GET command
 			# Check for "get" and appropriate arguments
 			if cmd[0] == "get" and len(cmd) == 2:
-
+                                # Send command
+                                sndBuff = chr(0)
+                                connSock.send(sndBuff)
+                                
+                                # Send max buffer size
+                                connSock.sendall(clientSize)
+                                
                                 # Set the name of the requested file as the string after "get"
                                 fileN = str(cmd[1])
                                 fileNLength = str(len(fileN))
@@ -113,25 +127,13 @@ def main():
                                 while len(fileNLength) < 2:
                                         fileNLength = "0" + fileNLength
                                 
-                                # Send command, length, and filename
-                                sndBuff = chr(0)
-                                connSock.send(sndBuff)
+                                # Send file name length, then name
                                 sndBuff = fileNLength
                                 connSock.send(sndBuff)
                                 sndBuff = fileN
                                 connSock.send(sndBuff)
 
-                                # Request file existence variable
-                                #existence = recvAll(connSock, 1)
-
-                                # If file does not exist, abandon get
-                                #if int(existence) != 1:
-                                #        print (existence)
-                                #        print "File does not exist on server. GET canceled."
-                                #        break
-                                
-                                # File exists, set up data transfer socket
-                                #else:
+                                # File confirmed, set up data transfer socket
                                 clientData = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
                                 # Get the transfer port from the server
@@ -139,59 +141,98 @@ def main():
                                 newPort = recvAll(connSock, int(portLength))
                                         
                                 # Connect to the server
-                                #Ack = recvAll(connSock, 1)
                                 newPort = int(newPort)
 		                clientData.connect((serverAddr, newPort))
                                 print "Transfer socket connected."
-                                        
-                                # Get size of receiver buffer and convert to string
-				size = str(clientData.getsockopt(socket.SOL_SOCKET,socket.SO_RCVBUF))
-
-				# Pad string with zeroes until buffer size is 10 digits
-				while len(size) < 10:
-					size = "0" + size
-
-                                # Send max buffer size.
-                                sndBuff = size
-                                clientData.send(sndBuff)
 
                                 # Commence Transfer
                                 numBytes = recvAll(clientData, 10)
                                 print "File requested is ", int(numBytes), " bytes"
-                                fileN = str(fileN) + '.received'
-                                transferFile = open(fileN, 'wb')
+                                
+                                fileN = str(fileN) + '.GET'
+                                transferFile = open(fileN, 'wb+')
                                 dataBuff = ""
                                 receivedBytes = 0
-                                if int(numBytes) < size:
-                                        size = int(numBytes)
-                                while (receivedBytes < numBytes):
-                                        dataBuff += clientData.recv(int(size))
+                                
+                                while (receivedBytes < int(numBytes)):
+                                        dataBuff += recvAll(clientData, int(numBytes))
                                         transferFile.write(dataBuff)
                                         receivedBytes += len(dataBuff)
-                                        print receivedBytes, "/", numBytes, "bytes received."
-                                print "Transfer complete."
-					
+                                        print receivedBytes, "/", int(numBytes), "bytes received."
+                                transferFile.close()
+                                print "Transfer complete. Closing Socket."
+                                clientData.close()
+				
 			# PUT command
 			# Check for "put" and appropriate arguments
 			elif cmd[0] == "put" and len(cmd) == 2:
-				
-				# Get size of receiver buffer and convert to string
-				size = str(connSock.getsockopt(socket.SOL_SOCKET,socket.SO_RCVBUF))
-				
-				# Pad string
-				while len(size) < 10:
-					size = "0" + size
-				
-				# Set command byte and add client receive buffer size
-				sndBuff = chr(1) + size
-				
-				# Send command byte and buffer size
-				connSock.send(sndBuff)
-					
-				# ***************
-				# CODE GOES HERE 
-				# ***************
-					
+                                # Send command
+                                sndBuff = chr(1)
+                                connSock.send(sndBuff)
+                                
+			        # Size of server receive buffer
+                                bufSize = ""
+                                bufSize = recvAll(connSock, 10)
+                                bufSize = int(bufSize)
+                                
+                                print "Server buffer size = ", bufSize, " bytes"
+
+                        
+                                # Set the name of the file to be sent as the string after "put"
+                                fileN = str(cmd[1])
+                                fileNLength = str(len(fileN))
+
+                                # Limit length of file names to 99 characters, ensure 2 bytes
+                                if len(fileNLength) > 2:
+                                        print "The file name is too long to transfer. PUT canceled."
+                                        break
+                                while len(fileNLength) < 2:
+                                        fileNLength = "0" + fileNLength
+                                
+                                # Send file name length, then name
+                                sndBuff = fileNLength
+                                connSock.sendall(sndBuff)
+                                sndBuff = fileN
+                                connSock.sendall(sndBuff)
+                                
+                                # Open requested file for reading and print its size
+                                reqFile = open(fileN, 'rb+')
+                                print fileN, " opened for reading."
+
+                                fileSize = os.fstat(reqFile.fileno()).st_size
+                                print "Detected file size is ", fileSize, " bytes"
+
+                                if fileSize <= 0:
+                                         print "Error: cannot send 0 byte file."
+                                         break
+                                # File confirmed, set up data transfer socket
+                                clientData = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+                                # Get the transfer port from the server
+                                portLength = recvAll(connSock, 1)
+                                newPort = recvAll(connSock, int(portLength))
+                                        
+                                # Connect to the server
+                                newPort = int(newPort)
+		                clientData.connect((serverAddr, newPort))
+                                print "Transfer socket connected."
+                              
+                                # Commence Transfer
+                                numBytes = str(fileSize)
+                                while len(numBytes) < 10:
+                                        numBytes = "0" + numBytes
+                                clientData.send(numBytes)
+                                         
+                                while True:
+                                        packet = reqFile.read(bufSize)
+                                        if not packet:
+                                                break
+                                        clientData.sendall(packet)
+                                        
+				print "PUT complete."
+				reqFile.close()
+				clientData.close()
+
 					
 			# LS command
 			# Check for "ls" and appropriate arguments
