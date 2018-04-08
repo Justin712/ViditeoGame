@@ -129,7 +129,7 @@ def main():
 			        # Size of receive buffer as 10-digit string
                                 servSize = ""
                                 servSize = str(clientSock.getsockopt(socket.SOL_SOCKET,socket.SO_RCVBUF))
-                                while (len(servSize) < 10):
+                                while (len(servSize) < 19):
                                         servSize = "0" + servSize
 
                         
@@ -137,7 +137,7 @@ def main():
 				if cmd == 0:
                                         # Size of client receive buffer
                                         bufSize = ""
-                                        bufSize = recvAll(clientSock, 10)
+                                        bufSize = recvAll(clientSock, 19)
                                         bufSize = int(bufSize)
                                         
                                         print "Client buffer size = ", bufSize, " bytes"
@@ -148,8 +148,14 @@ def main():
                                         print "Request for file ", fileN, " received."
                                         
                                         # Open requested file for reading and print its size
-                                        reqFile = open(fileN, 'rb+')
-                                        print fileN, " opened for reading."
+                                        try:
+                                                reqFile = open(fileN, 'rb+')
+                                                print fileN, " opened for reading."
+                                        
+                                        # Handles IO errors.
+                                        except IOError as e:
+                                                print "IO ERROR:\t *** %s ***" % print_error(e.errno)
+                                                break
                                         
                                         fileSize = (os.fstat(reqFile.fileno()).st_size)
                                         print "Detected file size is ", fileSize, " bytes"
@@ -176,7 +182,7 @@ def main():
                                         
                                         # Commence Transfer
                                         numBytes = str(fileSize)
-                                        while len(numBytes) < 10:
+                                        while len(numBytes) < 19:
                                                 numBytes = "0" + numBytes
                                         clientData.send(numBytes)
                                         while True:
@@ -218,7 +224,7 @@ def main():
                                         clientData, addr2 = servData.accept()
                                         
                                         # Commence Transfer
-                                        numBytes = recvAll(clientData, 10)
+                                        numBytes = recvAll(clientData, 19)
                                         print "File requested is ", int(numBytes), " bytes"
                                         fileN = str(fileN) + '.PUT'
                                         transferFile = open(fileN, 'wb+')
@@ -238,7 +244,7 @@ def main():
 				elif cmd == 2:
                                         # Size of client receive buffer
                                         bufSize = ""
-                                        bufSize = recvAll(clientSock, 10)
+                                        bufSize = recvAll(clientSock, 19)
                                         bufSize = int(bufSize)
                                         
                                         print "Client buffer size = ", bufSize, " bytes"
@@ -282,7 +288,7 @@ def main():
 
                                         # Commence Transfer
                                         numBytes = str(fileSize)
-                                        while len(numBytes) < 10:
+                                        while len(numBytes) < 19:
                                                 numBytes = "0" + numBytes
                                         clientData.send(numBytes)
                                         while True:
@@ -320,23 +326,21 @@ def main():
                                                         
 # Run main
 try:
-        main()
+	main()
 	
-        # Catch socket errors and print
+# Catch socket errors and print
 except socket.error as e:
-        print "SOCKET ERROR:\t *** %s ***" % print_error(e.errno)
+	print "SOCKET ERROR:\t *** %s ***" % print_error(e.errno)
 	
-        # Catch address errors and print
+# Catch address errors and print
 except socket.herror as e:
 	print "ADDRESS ERROR:\t *** %s ***" % print_error(e.errno)
 	
-        # Catch additional address errors and print
+# Catch additional address errors and print
 except socket.gaierror as e:
 	print "ADDRESS ERROR:\t *** %s ***" % print_error(e.errno)
 	
-        # Catch timeouts and print
+# Catch timeouts and print
 except socket.timeout as e:
 	print "TIMEOUT ERROR:\t *** %s ***" % print_error(e.errno)
-                                                                
-                                                                
-                                                                
+

@@ -94,10 +94,10 @@ def main():
 		connSock.connect((serverAddr, serverPort))
 
 		while True:
-                        # Size of receive buffer as 10-digit string
+                        # Size of receive buffer as 19-digit string
                         clientSize = ""
 			clientSize = str(connSock.getsockopt(socket.SOL_SOCKET,socket.SO_RCVBUF))
-                        while len(clientSize) < 10:
+                        while len(clientSize) < 19:
                                 clientSize = "0" + clientSize
 			
 			# Get user input and parse into array
@@ -138,31 +138,36 @@ def main():
 
                                 # Get the transfer port from the server
                                 portLength = recvAll(connSock, 1)
-                                newPort = ""
-                                newPort = recvAll(connSock, int(portLength))
                                 
-                                # Connect to the server
-                                newPort = int(newPort)
-		                clientData.connect((serverAddr, newPort))
-                                print "Transfer socket connected."
+                                if portLength == "":
+                                        print "GET ERROR"
+                                        
+                                else:
+                                        newPort = ""
+                                        newPort = recvAll(connSock, int(portLength))
+                                        
+                                        # Connect to the server
+                                        newPort = int(newPort)
+                                        clientData.connect((serverAddr, newPort))
+                                        print "Transfer socket connected."
 
-                                # Commence Transfer
-                                numBytes = recvAll(clientData, 10)
-                                print "File requested is ", int(numBytes), " bytes"
-                                
-                                fileN = str(fileN) + '.GET'
-                                transferFile = open(fileN, 'wb+')
-                                dataBuff = ""
-                                receivedBytes = 0
-                                
-                                while (receivedBytes < int(numBytes)):
-                                        dataBuff += recvAll(clientData, int(numBytes))
-                                        transferFile.write(dataBuff)
-                                        receivedBytes += len(dataBuff)
-                                        print receivedBytes, "/", int(numBytes), "bytes received."
-                                transferFile.close()
-                                print "Transfer complete. Closing Socket."
-                                clientData.close()
+                                        # Commence Transfer
+                                        numBytes = recvAll(clientData, 19)
+                                        print "File requested is ", int(numBytes), " bytes"
+                                        
+                                        fileN = str(fileN) + '.GET'
+                                        transferFile = open(fileN, 'wb+')
+                                        dataBuff = ""
+                                        receivedBytes = 0
+                                        
+                                        while (receivedBytes < int(numBytes)):
+                                                dataBuff += recvAll(clientData, int(numBytes))
+                                                transferFile.write(dataBuff)
+                                                receivedBytes += len(dataBuff)
+                                                print receivedBytes, "/", int(numBytes), "bytes received."
+                                        transferFile.close()
+                                        print "Transfer complete. Closing Socket."
+                                        clientData.close()
 				
 			# PUT command
 			# Check for "put" and appropriate arguments
@@ -173,7 +178,7 @@ def main():
                                 
 			        # Size of server receive buffer
                                 bufSize = ""
-                                bufSize = recvAll(connSock, 10)
+                                bufSize = recvAll(connSock, 19)
                                 bufSize = int(bufSize)
                                 
                                 print "Server buffer size = ", bufSize, " bytes"
@@ -197,43 +202,54 @@ def main():
                                 connSock.sendall(sndBuff)
                                 
                                 # Open requested file for reading and print its size
-                                reqFile = open(fileN, 'rb+')
-                                print fileN, " opened for reading."
+                                try:
+                                        reqFile = open(fileN, 'rb+')
+                                        print fileN, " opened for reading."
+                                        fileSize = os.fstat(reqFile.fileno()).st_size
+                                        print "Detected file size is ", fileSize, " bytes"
 
-                                fileSize = os.fstat(reqFile.fileno()).st_size
-                                print "Detected file size is ", fileSize, " bytes"
-
-                                if fileSize <= 0:
-                                         print "Error: cannot send 0 byte file."
-                                         break
-                                # File confirmed, set up data transfer socket
-                                clientData = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-
-                                # Get the transfer port from the server
-                                portLength = recvAll(connSock, 1)
-                                newPort = ""
-                                newPort = recvAll(connSock, int(portLength))
-                                        
-                                # Connect to the server
-                                newPort = int(newPort)
-		                clientData.connect((serverAddr, newPort))
-                                print "Transfer socket connected."
-                              
-                                # Commence Transfer
-                                numBytes = str(fileSize)
-                                while len(numBytes) < 10:
-                                        numBytes = "0" + numBytes
-                                clientData.send(numBytes)
-                                         
-                                while True:
-                                        packet = reqFile.read(bufSize)
-                                        if not packet:
+                                        if fileSize <= 0:
+                                                print "Error: cannot send 0 byte file."
                                                 break
-                                        clientData.sendall(packet)
+                                        # File confirmed, set up data transfer socket
+                                        clientData = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+                                        # Get the transfer port from the server
+                                        portLength = recvAll(connSock, 1)
+                                        newPort = ""
                                         
-				print "PUT complete."
-				reqFile.close()
-				clientData.close()
+                                        if portLength == "":
+                                                print "PUT ERROR"
+                                        
+                                        else: 
+                                                newPort = recvAll(connSock, int(portLength))
+                                                        
+                                                # Connect to the server
+                                                newPort = int(newPort)
+                                                clientData.connect((serverAddr, newPort))
+                                                print "Transfer socket connected."
+                                        
+                                                # Commence Transfer
+                                                numBytes = str(fileSize)
+                                                while len(numBytes) < 19:
+                                                        numBytes = "0" + numBytes
+                                                clientData.send(numBytes)
+                                                        
+                                                while True:
+                                                        packet = reqFile.read(bufSize)
+                                                        if not packet:
+                                                                break
+                                                        clientData.sendall(packet)
+                                                        
+                                                print "PUT complete."
+                                                reqFile.close()
+                                                clientData.close()
+
+                                        
+                                # Handles errors.
+                                except IOError as e:
+                                        print "IO ERROR:\t *** %s ***" % print_error(e.errno)
+                                        break
 
 					
 			# LS command
@@ -260,7 +276,7 @@ def main():
                                 print "Transfer socket connected."
                                 
                                 # Commence Transfer
-                                numBytes = recvAll(clientData, 10)
+                                numBytes = recvAll(clientData, 19)
                                 print "File requested is ", int(numBytes), " bytes"
                                 
                                 dataBuff = ""
