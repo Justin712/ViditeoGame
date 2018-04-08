@@ -138,8 +138,9 @@ def main():
 
                                 # Get the transfer port from the server
                                 portLength = recvAll(connSock, 1)
+                                newPort = ""
                                 newPort = recvAll(connSock, int(portLength))
-                                        
+                                
                                 # Connect to the server
                                 newPort = int(newPort)
 		                clientData.connect((serverAddr, newPort))
@@ -210,6 +211,7 @@ def main():
 
                                 # Get the transfer port from the server
                                 portLength = recvAll(connSock, 1)
+                                newPort = ""
                                 newPort = recvAll(connSock, int(portLength))
                                         
                                 # Connect to the server
@@ -237,25 +239,38 @@ def main():
 			# LS command
 			# Check for "ls" and appropriate arguments
 			elif cmd[0] == "ls" and len(cmd) == 1:
-				
-				# Get size of receiver buffer and convert to string
-				size = str(connSock.getsockopt(socket.SOL_SOCKET,socket.SO_RCVBUF))
-				
-				# Pad string
-				while len(size) < 10:
-					size = "0" + size
-				
-				# Set command byte and add client receiver buffer size
-				sndBuff = chr(2)
-				
-				# Send data
-				connSock.send(sndBuff)
+				# Send command
+                                sndBuff = chr(2)
+                                connSock.send(sndBuff)
                                 
-					
-				# ***************
-				# CODE GOES HERE 
-				# ***************
-					
+                                # Send max buffer size
+                                connSock.sendall(clientSize)
+                                
+                                # File confirmed, set up data transfer socket
+                                clientData = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+
+                                # Get the transfer port from the server
+                                portLength = recvAll(connSock, 1)
+                                newPort = ""
+                                newPort = recvAll(connSock, int(portLength))
+                                        
+                                # Connect to the server
+                                newPort = int(newPort)
+		                clientData.connect((serverAddr, newPort))
+                                print "Transfer socket connected."
+                                
+                                # Commence Transfer
+                                numBytes = recvAll(clientData, 10)
+                                print "File requested is ", int(numBytes), " bytes"
+                                
+                                dataBuff = ""
+                                receivedBytes = 0
+                                
+                                while (receivedBytes < int(numBytes)):
+                                        dataBuff += recvAll(clientData, int(numBytes))
+                                        receivedBytes += len(dataBuff)
+                                print(dataBuff)
+                                clientData.close()				
 					
 			# EXIT command
 			# Check for "exit" and appropriate arguments

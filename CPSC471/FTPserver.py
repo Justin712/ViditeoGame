@@ -233,24 +233,77 @@ def main():
                                         transferFile.close()
                                         print "SUCCESS: PUT"
                                         servData.close()
-                                                                                        
+
+                                # LS Command
 				elif cmd == 2:
+                                        # Size of client receive buffer
+                                        bufSize = ""
+                                        bufSize = recvAll(clientSock, 10)
+                                        bufSize = int(bufSize)
+                                        
+                                        print "Client buffer size = ", bufSize, " bytes"
+                                        
+                                        print "Request for LS received."
+
+                                        #os.system('ls > LS_Record.txt')
+                                        
+                                        # Open requested file for reading and print its size
+                                        reqFile = open('LS_Record.txt', 'rb+')
+                                        print "LS_Record.txt opened for reading."
+                                        
+                                        fileSize = (os.fstat(reqFile.fileno()).st_size)
+                                        print "Detected file size is ", fileSize, " bytes"
+                                        
+                                        if fileSize <= 0:
+                                                print "Error: cannot send 0 byte file."
+                                                break
+                                        
+                                        # Construct data socket, bind it to an ephemeral port,
+                                        # then open for connections
+                                        servData = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+                                        servData.bind(('',0))
+                                        newPort = str(servData.getsockname()[1])
+                                        newPortLength = len(newPort)
+                                        newPortLength = str(newPortLength)
+                                        
+                                        #Send client the new data transfer port
+                                        clientSock.sendall(newPortLength)
+                                        clientSock.sendall(newPort)
+                                        servData.listen(1)
+                                        
+                                        print "Ephemeral port number for LS: ", int(newPort)
+                                        clientData, addr2 = servData.accept()
+
+                                        # Send file name length, then file name
+                                        #sndBuff = str(len('LS_Record'))
+                                        #clientSock.sendall(sndBuff)
+                                        #sndBuff = 'LS_Record'
+                                        #clientSock.sendall(sndBuff)
+
+                                        # Commence Transfer
+                                        numBytes = str(fileSize)
+                                        while len(numBytes) < 10:
+                                                numBytes = "0" + numBytes
+                                        clientData.send(numBytes)
+                                        while True:
+                                                packet = reqFile.read(bufSize)
+                                                if not packet:
+                                                        break
+                                                clientData.sendall(packet)
+                                                
 					print "SUCCESS: LS"
-					
-					# Get max size of client receive buffer
-					clientBuff = recvAll(clientSock, 10)
-					
-					# ***************
-					# CODE GOES HERE 
-					# ***************
-					                        
+					print '\n', "Awaiting further commands..."
+					reqFile.close()
+					clientData.close()
+                                        servData.close()
 					                        
 				# EXIT command
 				elif cmd == 3:
+                                        
 					print "SUCCESS: EXIT"
 					break
 				                        
-				                        # Invalid command
+				# Invalid command
 				else:
 					print"FAILURE: ", cmd
 					
