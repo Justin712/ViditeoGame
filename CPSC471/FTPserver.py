@@ -245,7 +245,7 @@ def main():
                                         
                                         print "Request for LS received."
 
-                                        #os.system('ls > LS_Record.txt')
+                                        os.system('ls > LS_Record.txt')
                                         
                                         # Open requested file for reading and print its size
                                         reqFile = open('LS_Record.txt', 'rb+')
